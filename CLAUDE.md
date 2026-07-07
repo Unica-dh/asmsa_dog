@@ -99,6 +99,10 @@ npm run watch:dev                # Watch mode
 
 Porte: Apache su `localhost:6000` (prod), `localhost:7001` (dev con Xdebug). PhpMyAdmin dev su `:8080`.
 
+**URL locale del sito**: la docroot Apache è `/var/www/html/` con `./web` montato come sottocartella `asmsa`, quindi il sito si apre su **`http://localhost:7001/asmsa`** (dev, avvio con `./dev.sh up`) oppure `http://localhost:6000/asmsa` (prod, `make up`). La porta `9000` è quella *interna* di PHP-FPM e **non** è esposta sull'host: non usarla nel browser.
+
+**Ripristino DB locale**: metti il dump in `mariadb-init/` (montata in `/docker-entrypoint-initdb.d/`). L'import automatico avviene solo su volume MariaDB vuoto; se il volume esiste già, reimporta a mano: `docker exec asmsa_dog_mariadb sh -c 'mysql -udrupal -pdrupal drupal < /docker-entrypoint-initdb.d/<dump>.sql'` e poi `make drush "cr"`.
+
 ## Convenzioni di sviluppo
 
 - Standard di codifica Drupal 10: dependency injection, configuration schema, Entity API

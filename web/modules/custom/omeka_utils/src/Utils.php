@@ -170,19 +170,33 @@ class Utils {
     if ($cache = \Drupal::cache('omeka')->get($cacheId)) {
       return $cache->data;
     }
-    else {
-      $cacheId = 'omeka_site_' . $item->{'o:id'};
-      $site_id = $item->{'o:site'};
-      $site_source = file_get_contents($site_id[0]->{'@id'});
-      $site = json_decode($site_source);
-      $slug = $site->{'o:slug'};
-      // Rimuovo il trailing slash dalla base_url per evitare il doppio slash
-      $base_url_clean = rtrim($this->base_url, '/');
-      $site_url = $base_url_clean . '/s/' . $slug;
+
+    // Rimuovo il trailing slash dalla base_url per evitare il doppio slash.
+    $base_url_clean = rtrim($this->base_url, '/');
+    $site_id = $item->{'o:site'} ?? [];
+
+    // Un oggetto Omeka non assegnato ad alcun sito ha 'o:site' vuoto (o senza
+    // '@id'): in quel caso file_get_contents() riceverebbe un path vuoto e
+    // lancerebbe un ValueError, mandando in errore 500 l'intera pagina che
+    // renderizza il blocco (gallery, map, map_timeline). Gestiamo il caso con
+    // un URL di fallback sulla base_url e un warning, così la pagina resta viva.
+    if (empty($site_id) || empty($site_id[0]->{'@id'})) {
+      \Drupal::logger('omeka_utils')->warning('Oggetto Omeka @id senza sito associato (o:site vuoto): uso URL di fallback sulla base_url.', [
+        '@id' => $item->{'o:id'} ?? 'sconosciuto',
+      ]);
+      $site_url = $base_url_clean;
       $expire = strtotime('now +1 week');
       \Drupal::cache('omeka')->set($cacheId, $site_url, $expire);
       return $site_url;
     }
+
+    $site_source = file_get_contents($site_id[0]->{'@id'});
+    $site = json_decode($site_source);
+    $slug = $site->{'o:slug'};
+    $site_url = $base_url_clean . '/s/' . $slug;
+    $expire = strtotime('now +1 week');
+    \Drupal::cache('omeka')->set($cacheId, $site_url, $expire);
+    return $site_url;
   }
 
   // JavaScript code removed
